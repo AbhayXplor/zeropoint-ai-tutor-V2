@@ -26,7 +26,8 @@ The JSON structure is as follows:
       "assumption_text": "[specific text that contains the assumption]",
       "prerequisite_concept": "[what knowledge is assumed]",
       "severity": "[Critical/Helpful/Advanced]",
-      "explanation": "[why this is an assumption]"
+      "explanation": "[A concise justification for why this assumption is being made, directly linking it to a part of the problem. Example: 'The presence of 'x * sin(x)' in the integral requires knowledge of the Product Rule for differentiation.']",
+      "confidence_score": "[A number between 0.0 and 1.0 representing your confidence that this assumption is relevant and correct]"
     }
   ],
   "knowledge_map": {

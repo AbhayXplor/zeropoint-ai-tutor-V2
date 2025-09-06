@@ -11,6 +11,12 @@ const severityStyles = {
   Advanced: 'bg-green-100 border-green-500 text-green-700',
 };
 
+const confidenceBadgeStyles = {
+    Critical: 'bg-red-200 text-red-800',
+    Helpful: 'bg-yellow-200 text-yellow-800',
+    Advanced: 'bg-green-200 text-green-800',
+};
+
 const iconStyles = {
   Critical: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
   Helpful: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -20,13 +26,21 @@ const iconStyles = {
 const AssumptionCard: React.FC<AssumptionCardProps> = ({ assumption }) => {
   const severityClass = severityStyles[assumption.severity] || 'bg-gray-100 border-gray-500 text-gray-700';
   const iconPath = iconStyles[assumption.severity];
+  const confidenceBadgeClass = confidenceBadgeStyles[assumption.severity];
+  const confidencePercentage = Math.round((assumption.confidence_score || 0) * 100);
+
 
   return (
     <div className={`border-l-4 p-4 rounded-r-lg shadow-sm ${severityClass}`}>
       <div className="flex items-start space-x-3">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={iconPath} /></svg>
         <div>
-          <p className="font-bold">{assumption.prerequisite_concept}</p>
+           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+                <p className="font-bold">{assumption.prerequisite_concept}</p>
+                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${confidenceBadgeClass}`}>
+                    {confidencePercentage}% CONFIDENCE
+                </span>
+            </div>
           <p className="text-sm italic mt-1">Found in: "{assumption.assumption_text}"</p>
           <p className="text-sm mt-2">{assumption.explanation}</p>
         </div>

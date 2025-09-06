@@ -4,6 +4,7 @@ import { KnowledgeMap, Assumption } from '../types';
 interface KnowledgeGraphProps {
   knowledge_map: KnowledgeMap;
   assumptions: Assumption[];
+  onNodeClick: (nodeName: string) => void;
 }
 
 interface Node {
@@ -35,7 +36,7 @@ const severityColors = {
 };
 
 
-const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ knowledge_map, assumptions }) => {
+const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ knowledge_map, assumptions, onNodeClick }) => {
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [connectedNodes, setConnectedNodes] = useState<Set<string>>(new Set());
 
@@ -169,6 +170,7 @@ const KnowledgeGraph: React.FC<KnowledgeGraphProps> = ({ knowledge_map, assumpti
               transform={`translate(${node.x}, ${node.y})`}
               onMouseEnter={() => handleMouseEnter(node.name)}
               onMouseLeave={handleMouseLeave}
+              onClick={() => onNodeClick(node.name)}
               style={{
                 transition: 'opacity 0.2s ease-in-out',
                 opacity: !hoveredNode || connectedNodes.has(node.name) ? 1 : 0.3,

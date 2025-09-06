@@ -31,7 +31,7 @@ const fileToGenerativePart = async (file: File) => {
 const App: React.FC = () => {
   const [mathContent, setMathContent] = useState<string>('');
   const [image, setImage] = useState<{file: File, preview: string} | null>(null);
-  const [analysisResult, setAnalysisResult] = useState<ZeroPointResponse | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<{ data: ZeroPointResponse; duration: number } | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -107,6 +107,7 @@ const App: React.FC = () => {
     setAnalysisResult(null);
     setStreamingText('');
 
+    const startTime = performance.now();
     let fullResponse = '';
     try {
         const imagePart = image ? await fileToGenerativePart(image.file) : undefined;
@@ -116,6 +117,9 @@ const App: React.FC = () => {
             fullResponse += chunk;
             setStreamingText(fullResponse);
         }
+
+        const endTime = performance.now();
+        const analysisDuration = (endTime - startTime) / 1000; // in seconds
 
         // Sometimes the API returns the JSON wrapped in ```json ... ```, so we need to clean it.
         const cleanedText = fullResponse.replace(/^```json\s*|```$/g, '');
@@ -130,7 +134,7 @@ const App: React.FC = () => {
             parsedData.original_content = mathContent || "Analysis of uploaded image";
         }
         
-        setAnalysisResult(parsedData as ZeroPointResponse);
+        setAnalysisResult({ data: parsedData as ZeroPointResponse, duration: analysisDuration });
 
     } catch (err) {
         if (err instanceof Error) {
@@ -247,7 +251,7 @@ const App: React.FC = () => {
                     <p className="mt-2 text-gray-500">Enter your math content on the left to begin.</p>
                 </div>
             )}
-            {analysisResult && <ResultsDisplay data={analysisResult} />}
+            {analysisResult && <ResultsDisplay data={analysisResult.data} duration={analysisResult.duration} />}
           </div>
         </div>
       </main>

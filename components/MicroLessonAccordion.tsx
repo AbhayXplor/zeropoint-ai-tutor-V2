@@ -3,16 +3,17 @@ import { MicroLesson } from '../types';
 
 interface MicroLessonAccordionProps {
   lesson: MicroLesson;
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
-const MicroLessonAccordion: React.FC<MicroLessonAccordionProps> = ({ lesson }) => {
-  const [isOpen, setIsOpen] = useState(false);
+const MicroLessonAccordion: React.FC<MicroLessonAccordionProps> = ({ lesson, isOpen, onToggle }) => {
   const [showAnswer, setShowAnswer] = useState(false);
 
   return (
     <div className="border border-gray-200 rounded-lg mb-2 overflow-hidden shadow-sm">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={onToggle}
         className="w-full text-left p-4 bg-white hover:bg-gray-50 flex justify-between items-center transition"
       >
         <div className="flex items-center">

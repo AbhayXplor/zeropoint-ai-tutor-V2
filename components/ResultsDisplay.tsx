@@ -7,15 +7,22 @@ import KnowledgeGraph from './KnowledgeGraph';
 
 interface ResultsDisplayProps {
   data: ZeroPointResponse;
+  duration: number;
 }
 
-const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?: boolean }> = ({ title, children, defaultOpen = true }) => {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
+interface SectionProps {
+    title: string;
+    children: React.ReactNode;
+    isOpen: boolean;
+    onToggle: () => void;
+    sectionId?: string;
+}
 
+const Section: React.FC<SectionProps> = ({ title, children, isOpen, onToggle, sectionId }) => {
     return (
-        <div className="mb-6 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div id={sectionId} className="mb-6 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden scroll-mt-4">
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={onToggle}
                 className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 flex justify-between items-center transition"
                 aria-expanded={isOpen}
             >
@@ -29,7 +36,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode; defaultOpen?
     );
 };
 
-const KeyMetrics: React.FC<{ data: ZeroPointResponse }> = ({ data }) => {
+const KeyMetrics: React.FC<{ data: ZeroPointResponse; duration: number }> = ({ data, duration }) => {
     const metrics = useMemo(() => {
         const assumptionsCount = data.assumptions_detected.length;
         const microLessonsCount = data.micro_lessons.length;
@@ -50,11 +57,12 @@ const KeyMetrics: React.FC<{ data: ZeroPointResponse }> = ({ data }) => {
             { label: 'Micro-Lessons', value: microLessonsCount, icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto mb-2 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v11.494m-5.747-5.747h11.494" /></svg> },
             { label: 'Learning Steps', value: learningPathSteps, icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto mb-2 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg> },
             { label: 'Est. Time to Mastery', value: `~${timeToMastery} min`, icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto mb-2 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+            { label: 'Analysis Time', value: `${duration.toFixed(1)}s`, icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mx-auto mb-2 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> },
         ];
-    }, [data]);
+    }, [data, duration]);
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8 text-center">
             {metrics.map(metric => (
                 <div key={metric.label} className="p-4 bg-white rounded-xl shadow-lg border border-gray-200">
                     {metric.icon}
@@ -67,8 +75,11 @@ const KeyMetrics: React.FC<{ data: ZeroPointResponse }> = ({ data }) => {
 };
 
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data, duration }) => {
   const [copied, setCopied] = useState(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['Assumptions Detected', 'Knowledge Map']));
+  const [openLessons, setOpenLessons] = useState<Set<string>>(new Set());
+
   const difficultyColor = {
     Beginner: 'bg-green-100 text-green-800',
     Intermediate: 'bg-yellow-100 text-yellow-800',
@@ -82,9 +93,55 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
       });
   };
 
+  const handleToggleSection = (title: string) => {
+    setOpenSections(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(title)) {
+        newSet.delete(title);
+      } else {
+        newSet.add(title);
+      }
+      return newSet;
+    });
+  };
+
+  const handleToggleLesson = (prerequisite: string) => {
+    setOpenLessons(prevOpen => {
+      const newOpen = new Set(prevOpen);
+      if (newOpen.has(prerequisite)) {
+        newOpen.delete(prerequisite);
+      } else {
+        newOpen.add(prerequisite);
+      }
+      return newOpen;
+    });
+  };
+
+  const handleNodeClick = (conceptName: string) => {
+      const hasLesson = data.micro_lessons.some(lesson => lesson.prerequisite === conceptName);
+      if (hasLesson) {
+          // Ensure Micro-Lessons section is open
+          if (!openSections.has('Micro-Lessons')) {
+            handleToggleSection('Micro-Lessons');
+          }
+
+          // Open the specific lesson accordion if it's not already
+          if (!openLessons.has(conceptName)) {
+            setOpenLessons(prev => new Set(prev).add(conceptName));
+          }
+          
+          // Scroll after a short delay to allow the DOM to update
+          setTimeout(() => {
+              const sectionEl = document.getElementById('micro-lessons-section');
+              sectionEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+      }
+  };
+
+
   return (
     <div className="space-y-8">
-      <KeyMetrics data={data} />
+      <KeyMetrics data={data} duration={duration} />
       <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
         <div className="flex justify-between items-start">
             <div>
@@ -104,7 +161,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </span>
       </div>
 
-      <Section title="Assumptions Detected">
+      <Section title="Assumptions Detected" isOpen={openSections.has('Assumptions Detected')} onToggle={() => handleToggleSection('Assumptions Detected')}>
         <div className="space-y-4">
           {data.assumptions_detected.map(assumption => (
             <AssumptionCard key={assumption.assumption_id} assumption={assumption} />
@@ -112,7 +169,7 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
         </div>
       </Section>
 
-      <Section title="Knowledge Map" defaultOpen={true}>
+      <Section title="Knowledge Map" isOpen={openSections.has('Knowledge Map')} onToggle={() => handleToggleSection('Knowledge Map')}>
         <div className="space-y-6">
             <div>
                 <h4 className="font-semibold text-lg text-brand-dark">Target Concept</h4>
@@ -132,25 +189,30 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ data }) => {
             </div>
              <div>
                 <h4 className="font-semibold text-lg text-brand-dark mb-2">Dependency Graph</h4>
-                <p className="text-sm text-gray-500 mb-4">Hover over a concept to see its direct relationships. Nodes are color-coded by assumption severity.</p>
-                <KnowledgeGraph knowledge_map={data.knowledge_map} assumptions={data.assumptions_detected} />
+                <p className="text-sm text-gray-500 mb-4">Hover to see relationships. Click a concept node to jump to its micro-lesson.</p>
+                <KnowledgeGraph knowledge_map={data.knowledge_map} assumptions={data.assumptions_detected} onNodeClick={handleNodeClick} />
             </div>
         </div>
       </Section>
 
-      <Section title="Micro-Lessons" defaultOpen={false}>
+      <Section title="Micro-Lessons" sectionId="micro-lessons-section" isOpen={openSections.has('Micro-Lessons')} onToggle={() => handleToggleSection('Micro-Lessons')}>
         {data.micro_lessons.map(lesson => (
-            <MicroLessonAccordion key={lesson.prerequisite} lesson={lesson} />
+            <MicroLessonAccordion 
+                key={lesson.prerequisite} 
+                lesson={lesson} 
+                isOpen={openLessons.has(lesson.prerequisite)}
+                onToggle={() => handleToggleLesson(lesson.prerequisite)}
+            />
         ))}
       </Section>
       
-      <Section title="Knowledge Gap Tests" defaultOpen={false}>
+      <Section title="Knowledge Gap Tests" isOpen={openSections.has('Knowledge Gap Tests')} onToggle={() => handleToggleSection('Knowledge Gap Tests')}>
         {data.gap_tests.map((test, index) => (
             <GapTest key={test.prerequisite} test={test} testNumber={index + 1} />
         ))}
       </Section>
 
-      <Section title="Recommended Learning Path" defaultOpen={false}>
+      <Section title="Recommended Learning Path" isOpen={openSections.has('Recommended Learning Path')} onToggle={() => handleToggleSection('Recommended Learning Path')}>
         <ol className="list-decimal list-inside space-y-2">
             {data.learning_path.map((step, index) => (
                 <li key={index} className="p-2 bg-green-50 rounded-md border-l-4 border-green-400 text-green-800" style={{ whiteSpace: 'pre-wrap' }}>

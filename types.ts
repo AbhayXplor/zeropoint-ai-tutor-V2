@@ -5,6 +5,7 @@ export interface Assumption {
   prerequisite_concept: string;
   severity: 'Critical' | 'Helpful' | 'Advanced';
   explanation: string;
+  confidence_score: number;
 }
 
 export interface Dependency {
